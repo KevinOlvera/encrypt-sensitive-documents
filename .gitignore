@@ -1,0 +1,5 @@
+.idea
+files/*
+venv
+*.pem
+tmp/*
