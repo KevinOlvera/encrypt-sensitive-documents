@@ -36,21 +36,41 @@ class App:
             pass
 
     def encrypt(self, public_key_path: Path):
+        """
+        Method to encrypt a file
+        :param public_key_path: Directory of the public key
+        :return:
+        """
         logging.info(f'Starting encryption for file {self._file_path.name}')
         self._public_key = RSA.import_key(open(public_key_path.resolve(), 'r').read())
         self._generate_key_file()
         self._encrypt_file()
 
     def decrypt(self, private_key_path: Path, key_file_path: Path):
+        """
+        Method to decrypt a file
+        :param private_key_path: Directory of the private key
+        :param key_file_path: Directory of the unique key file
+        :return:
+        """
         logging.info(f'Starting decryption for file {self._file_path.name}')
         self._private_key = RSA.import_key(open(private_key_path.resolve(), 'r').read())
         self._set_file_key(key_file_path)
         self._decrypt_file()
 
     def _set_file_key(self, key_path: Path):
+        """
+        Private method to set the unique key of to decrypt the file.
+        :param key_path:
+        :return:
+        """
         self._decrypt_key_file(key_path)
 
     def generate_keys(self):
+        """
+        Method to create the public and private RSA keys
+        :return:
+        """
         logging.info('Generating public and private keys ...')
         private_key: RsaKey = RSA.generate(1024)
         public_key: RsaKey = private_key.public_key()
@@ -64,12 +84,20 @@ class App:
         logging.info('Public and private keys have been written.')
 
     def _generate_key_file(self):
+        """
+        Create a random unique key to be used to encrypt and decrypt the document
+        :return:
+        """
         letters = string.ascii_lowercase
         self._key = ''.join(random.choice(letters) for i in range(16))
         logging.info(f'{len(self._key)} bytes key file has been created.')
         self._encrypt_key_file()
 
     def _encrypt_key_file(self):
+        """
+        Method to encrypt and store the unique key file
+        :return:
+        """
         logging.debug(f'Current public key {self._public_key}')
         cipher = PKCS1_OAEP.new(key=self._public_key)
         key = cipher.encrypt(self._key.encode())
@@ -77,11 +105,11 @@ class App:
         self._write_binary_file(key_path, key)
         logging.info(f'Key file has been saved on {key_path}')
 
-    def _load_keys(self, keys_path: Path):
-        self._private_key = RSA.import_key(open((keys_path / 'private_key.pem').resolve(), 'r').read())
-        self._public_key = RSA.import_key(open((keys_path / 'public_key.pem').resolve(), 'r').read())
-
     def _encrypt_file(self):
+        """
+        Method to encrypt the document with AES
+        :return:
+        """
         IV = b'secretsecretsecr'
         logging.info('Running AES cipher in CBC mode ...')
         aes = AES.new(key=self._key.encode(), mode=AES.MODE_CBC, iv=IV)
@@ -91,6 +119,10 @@ class App:
         self._write_binary_file(new_path.resolve(), encrypted_data)
 
     def _decrypt_file(self):
+        """
+        Method to decrypt the document with AES
+        :return:
+        """
         IV = b'secretsecretsecr'
         aes = AES.new(key=self._key.encode(), mode=AES.MODE_CBC, iv=IV)
         data = unpad(aes.decrypt(self._file), AES.block_size)
@@ -99,6 +131,11 @@ class App:
         logging.info(f'File {new_path.resolve()} has been decrypted successfully.')
 
     def _decrypt_key_file(self, key_path: Path):
+        """
+        Method to decrypt the unique key to be use with to encrypt and decrypt the document
+        :param key_path: Directory of the unique encrypted key
+        :return:
+        """
         key = self._load_file(key_path)
         decrypter: PKCS1OAEP_Cipher = PKCS1_OAEP.new(key=self._private_key)
         self._key = decrypter.decrypt(key).decode()
@@ -106,6 +143,12 @@ class App:
 
     @staticmethod
     def _write_file(file_path: Path, data: Any):
+        """
+        Static method to write data in a file
+        :param file_path: Directory in which the file will be stored
+        :param data: Data to be written in the file
+        :return:
+        """
         try:
             logging.debug(f'Writing file on {file_path.resolve()}')
             file = open(file_path.resolve(), 'w')
@@ -116,6 +159,12 @@ class App:
 
     @staticmethod
     def _write_binary_file(file_path: Path, data: bytes):
+        """
+        Static method to write data bytes in a file
+        :param file_path: Directory in which the file will be stored
+        :param data: Data to be written in the file in bytes
+        :return:
+        """
         try:
             logging.debug(f'Writing file on {file_path.resolve()}')
             file = open(file_path.resolve(), 'wb')
@@ -126,6 +175,11 @@ class App:
 
     @staticmethod
     def _load_file(file_path: Path) -> bytes:
+        """
+        Static method to read a file in bytes
+        :param file_path: Directory of the file to be read
+        :return:
+        """
         try:
             logging.debug(f'Opening {file_path.resolve()}')
             file: BinaryIO = open(file_path.resolve(), 'rb')
